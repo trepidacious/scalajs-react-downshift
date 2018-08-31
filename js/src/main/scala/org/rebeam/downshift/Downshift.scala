@@ -25,7 +25,7 @@ object Downshift {
     var getMenuProps: scalajs.js.Function1[js.Object, js.Object] = js.native
     var getRootProps: scalajs.js.Function1[js.Object, js.Object] = js.native
     var isOpen: Boolean = js.native
-    var inputValue: String = js.native
+    var inputValue: js.Any = js.native
     var highlightedIndex: js.Any = js.native
     var selectedItem: js.Any = js.native
     var id: String = js.native
@@ -96,6 +96,9 @@ object Downshift {
   private def optionInt(v: js.Any): Option[Int] = if (v == null) None else Some(v.asInstanceOf[Int])
   private def option[A](v: js.Any): Option[A] = if (v == null) None else Some(v.asInstanceOf[A])
 
+  // Downshift can provide a null inputValue when tabbing away from input
+  private def denullString(v: js.Any): String = if (v == null) "" else v.toString
+
   private def renderStateFrom[A](c: ChildrenFunctionParams): RenderState[A] = 
     RenderState[A](
       c.getToggleButtonProps,
@@ -105,7 +108,7 @@ object Downshift {
       c.getMenuProps,
       c.getRootProps,
       c.isOpen,
-      c.inputValue,
+      denullString(c.inputValue),
       optionInt(c.highlightedIndex),
       option[A](c.selectedItem),
       c.id)
@@ -113,26 +116,15 @@ object Downshift {
   @js.native
   trait Props extends js.Object {
 
-    // var variant: js.UndefOr[String] = js.native
     var children: scalajs.js.Function1[ChildrenFunctionParams, japgolly.scalajs.react.raw.React.Element] = js.native
+    var itemToString: scalajs.js.Function1[js.Any, String] = js.native
 
-    /**
-     * Called when the user selects an item and the selected item has changed. 
-     * Called with the item that was selected and the new state of downshift. (see onStateChange for more info on stateAndHelpers).
-     * First param: The item that was just selected
-     * Second param: Params object as provided to children
-     */
-    var onChange: scalajs.js.Function2[js.Any, ChildrenFunctionParams, Unit] = js.native
+    var selectedItem: js.UndefOr[js.Any] = js.native
+    var onChange: js.UndefOr[scalajs.js.Function2[js.Any, ChildrenFunctionParams, Unit]] = js.native
 
-    /**
-     * Used to determine the string value for the selected item (which is used to compute the inputValue).
-     */
-    var itemToString: js.UndefOr[scalajs.js.Function1[js.Any, String]] = js.native
+    var inputValue: js.UndefOr[String] = js.native
+    var onInputValueChange: js.UndefOr[scalajs.js.Function2[js.Any, ChildrenFunctionParams, Unit]] = js.native
 
-    /**
-     * The selected item, to use Downshift as a controlled component
-     */
-    var selectedItem: js.Any = js.native
   }
 
   @JSImport("downshift", JSImport.Default)
@@ -142,22 +134,125 @@ object Downshift {
   val jsFnComponent = JsFnComponent[Props, Children.None](DownshiftJS)
   
   /**
-   * @param onChange  Called when selection changes, with new selection and the same params passed to children parameter
-   * @param children  Named to match Downshift in javascript - this is a function to render the contents
-   */
+    * Create a Downshift component, with selectedItem and inputValue both controlled
+    *
+    * @param itemToString Render an item to its string representation in the input element
+    * @param selectedItem The selected item, to use Downshift as a controlled component
+    * @param onChange  Called when selection changes, with new selection and the same params passed to children parameter
+    * @param inputValue The value of the input element, to use Downshift as a controlled component
+    * @param onInputValueChange Called when input value changes, with new value and the same params passed to children parameter
+    *
+    * @param children  Named to match Downshift in javascript - this is a function to render the contents
+    */
   def apply[A](
+    itemToString: A => String,
+    selectedItem: Option[A],
     onChange: (Option[A], RenderState[A]) => Callback,
-    selectedItem: Option[A]
+    inputValue: String,
+    onInputValueChange: (String, RenderState[A]) => Callback
   )(children: RenderState[A] => VdomElement) = {
 
     val p = (new js.Object).asInstanceOf[Props]
     
-    p.children = (e: ChildrenFunctionParams) => children(renderStateFrom(e)).rawElement
+    p.itemToString = (item: js.Any) => itemToString(item.asInstanceOf[A])
+
     p.selectedItem = selectedItem.getOrElse(null).asInstanceOf[js.Any]
-    p.onChange = (item: js.Any, c: ChildrenFunctionParams) => onChange(option[A](item), renderStateFrom(c)).runNow
+    p.onChange = js.defined((item: js.Any, c: ChildrenFunctionParams) => onChange(option[A](item), renderStateFrom(c)).runNow)
+
+    p.inputValue = inputValue
+    p.onInputValueChange = js.defined((inputValue: js.Any, c: ChildrenFunctionParams) => onInputValueChange(denullString(inputValue), renderStateFrom(c)).runNow)
+
+    p.children = (e: ChildrenFunctionParams) => children(renderStateFrom(e)).rawElement
 
     jsFnComponent(p)
   }
 
+  /**
+    * Create a Downshift component, with only selectedItem controlled (normally this is sufficient)
+    * Note https://github.com/paypal/downshift/issues/512 - hopefully this will be fixed soon
+    *
+    * @param itemToString Render an item to its string representation in the input element
+    * @param selectedItem The selected item, to use Downshift as a controlled component
+    * @param onChange  Called when selection changes, with new selection and the same params passed to children parameter
+    *
+    * @param children  Named to match Downshift in javascript - this is a function to render the contents
+    */
+  def apply[A](
+    itemToString: A => String,
+    selectedItem: Option[A],
+    onChange: (Option[A], RenderState[A]) => Callback,
+  )(children: RenderState[A] => VdomElement) = {
+
+    val p = (new js.Object).asInstanceOf[Props]
+    
+    p.itemToString = (item: js.Any) => itemToString(item.asInstanceOf[A])
+
+    p.selectedItem = selectedItem.getOrElse(null).asInstanceOf[js.Any]
+    p.onChange = js.defined((item: js.Any, c: ChildrenFunctionParams) => onChange(option[A](item), renderStateFrom(c)).runNow)
+
+    p.children = (e: ChildrenFunctionParams) => children(renderStateFrom(e)).rawElement
+
+    jsFnComponent(p)
+  }
+
+  /**
+    * Create a Downshift component, uncontrolled
+    *
+    * @param itemToString Render an item to its string representation in the input element
+    * @param onChange  Called when selection changes, with new selection and the same params passed to children parameter
+    *
+    * @param children  Named to match Downshift in javascript - this is a function to render the contents
+    */
+  def apply[A](
+    itemToString: A => String,
+    onChange: (Option[A], RenderState[A]) => Callback,
+  )(children: RenderState[A] => VdomElement) = {
+
+    val p = (new js.Object).asInstanceOf[Props]
+    
+    p.itemToString = (item: js.Any) => itemToString(item.asInstanceOf[A])
+
+    p.onChange = js.defined((item: js.Any, c: ChildrenFunctionParams) => onChange(option[A](item), renderStateFrom(c)).runNow)
+
+    p.children = (e: ChildrenFunctionParams) => children(renderStateFrom(e)).rawElement
+
+    // Fix for https://github.com/paypal/downshift/issues/512 by disabling "fix" for "issue" https://github.com/paypal/downshift/issues/243
+    // p.asInstanceOf[js.Dictionary[js.Any]]("breakingChanges") = js.Dynamic.literal(
+    //   resetInputOnSelection = false
+    // )
+
+    jsFnComponent(p)
+  }
+
+  /**
+    * Create a Downshift component, with inputValue controlled
+    *
+    * @param itemToString Render an item to its string representation in the input element
+    * @param onChange  Called when selection changes, with new selection and the same params passed to children parameter
+    * @param inputValue The value of the input element, to use Downshift as a controlled component
+    * @param onInputValueChange Called when input value changes, with new value and the same params passed to children parameter
+    *
+    * @param children  Named to match Downshift in javascript - this is a function to render the contents
+    */
+  def apply[A](
+    itemToString: A => String,
+    onChange: (Option[A], RenderState[A]) => Callback,
+    inputValue: String,
+    onInputValueChange: (String, RenderState[A]) => Callback
+  )(children: RenderState[A] => VdomElement) = {
+
+    val p = (new js.Object).asInstanceOf[Props]
+    
+    p.itemToString = (item: js.Any) => itemToString(item.asInstanceOf[A])
+
+    p.onChange = js.defined((item: js.Any, c: ChildrenFunctionParams) => onChange(option[A](item), renderStateFrom(c)).runNow)
+
+    p.inputValue = inputValue
+    p.onInputValueChange = js.defined((inputValue: js.Any, c: ChildrenFunctionParams) => onInputValueChange(denullString(inputValue), renderStateFrom(c)).runNow)
+
+    p.children = (e: ChildrenFunctionParams) => children(renderStateFrom(e)).rawElement
+
+    jsFnComponent(p)
+  }
 }
         
