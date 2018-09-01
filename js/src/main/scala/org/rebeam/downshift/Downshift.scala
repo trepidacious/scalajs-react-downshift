@@ -29,6 +29,12 @@ object Downshift {
     var highlightedIndex: js.Any = js.native
     var selectedItem: js.Any = js.native
     var id: String = js.native
+    // Note actually scalajs.js.Function1[scalajs.js.Function0[Unit], Unit]
+    var openMenu: scalajs.js.Function0[Unit] = js.native
+    // Note actually scalajs.js.Function1[scalajs.js.Function0[Unit], Unit]
+    var closeMenu: scalajs.js.Function0[Unit] = js.native
+    var selectItemAtIndex: scalajs.js.Function1[Int, Unit] = js.native
+    var setHighlightedIndex: scalajs.js.Function1[Int, Unit] = js.native
   }
 
   /**
@@ -78,6 +84,12 @@ object Downshift {
     *   The currently selected item input
     * @param id 
     *   The id passed to Downshift component as a prop
+    * @param openMenu
+    *   JS function to open the menu, use in callbacks 
+    * @param closeMenu
+    *   JS function to close the menu, use in callbacks 
+    * @param selectItemAtIndex
+    *   JS function to select a specified item in the menu, use in callbacks 
     */
   case class RenderState[A] (
     getToggleButtonProps: js.Object => js.Object,
@@ -91,6 +103,10 @@ object Downshift {
     highlightedIndex: Option[Int],
     selectedItem: Option[A],
     id: String,
+    openMenu: scalajs.js.Function0[Unit],
+    closeMenu: scalajs.js.Function0[Unit],
+    selectItemAtIndex: scalajs.js.Function1[Int, Unit],
+    setHighlightedIndex: scalajs.js.Function1[Int, Unit]
   )
 
   private def optionInt(v: js.Any): Option[Int] = if (v == null) None else Some(v.asInstanceOf[Int])
@@ -111,7 +127,12 @@ object Downshift {
       denullString(c.inputValue),
       optionInt(c.highlightedIndex),
       option[A](c.selectedItem),
-      c.id)
+      c.id,
+      c.openMenu,
+      c.closeMenu,
+      c.selectItemAtIndex,
+      c.setHighlightedIndex
+    )
 
   @js.native
   trait Props extends js.Object {
