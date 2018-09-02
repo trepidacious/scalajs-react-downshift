@@ -237,11 +237,6 @@ object Downshift {
 
     p.children = (e: ChildrenFunctionParams) => children(renderStateFrom(e)).rawElement
 
-    // Fix for https://github.com/paypal/downshift/issues/512 by disabling "fix" for "issue" https://github.com/paypal/downshift/issues/243
-    // p.asInstanceOf[js.Dictionary[js.Any]]("breakingChanges") = js.Dynamic.literal(
-    //   resetInputOnSelection = false
-    // )
-
     jsFnComponent(p)
   }
 
