@@ -175,7 +175,7 @@ object Downshift {
 
     val p = (new js.Object).asInstanceOf[Props]
     
-    p.itemToString = (item: js.Any) => itemToString(item.asInstanceOf[A])
+    p.itemToString = (item: js.Any) => if (item == null) "" else itemToString(item.asInstanceOf[A])
 
     p.selectedItem = selectedItem.getOrElse(null).asInstanceOf[js.Any]
     p.onChange = js.defined((item: js.Any, c: ChildrenFunctionParams) => onChange(option[A](item), renderStateFrom(c)).runNow)
@@ -206,7 +206,7 @@ object Downshift {
 
     val p = (new js.Object).asInstanceOf[Props]
     
-    p.itemToString = (item: js.Any) => itemToString(item.asInstanceOf[A])
+    p.itemToString = (item: js.Any) => if (item == null) "" else itemToString(item.asInstanceOf[A])
 
     p.selectedItem = selectedItem.getOrElse(null).asInstanceOf[js.Any]
     p.onChange = js.defined((item: js.Any, c: ChildrenFunctionParams) => onChange(option[A](item), renderStateFrom(c)).runNow)
@@ -231,7 +231,7 @@ object Downshift {
 
     val p = (new js.Object).asInstanceOf[Props]
     
-    p.itemToString = (item: js.Any) => itemToString(item.asInstanceOf[A])
+    p.itemToString = (item: js.Any) => if (item == null) "" else itemToString(item.asInstanceOf[A])
 
     p.onChange = js.defined((item: js.Any, c: ChildrenFunctionParams) => onChange(option[A](item), renderStateFrom(c)).runNow)
 
@@ -264,7 +264,7 @@ object Downshift {
 
     val p = (new js.Object).asInstanceOf[Props]
     
-    p.itemToString = (item: js.Any) => itemToString(item.asInstanceOf[A])
+    p.itemToString = (item: js.Any) => if (item == null) "" else itemToString(item.asInstanceOf[A])
 
     p.onChange = js.defined((item: js.Any, c: ChildrenFunctionParams) => onChange(option[A](item), renderStateFrom(c)).runNow)
 
